@@ -17,6 +17,10 @@ i2c = busio.I2C(board.SCL, board.SDA)
 # Create MPR121 object.
 mpr121 = 0
 mpr1212 = 0
+
+# declaring the capacitive touch sensors with respect to their I2C address defined in the specs. This is based on a wired connection between ADDR and 
+# one of the other pins on the capacitive touch boards. These boards support 0x5a - 0x5d addresses  
+# The current setup is using 0x5a the default address and 0x5b
 mpr121 = adafruit_mpr121.MPR121(i2c , address = 0x5b)
 mpr1212 = adafruit_mpr121.MPR121(i2c , address = 0x5a)
 
@@ -33,25 +37,34 @@ LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
 LED_PIN2       = 13
 LED_CHANNEL2   = 1
 PIXEL_WIDTH    = 3
+# Speed is currently set to delay every update by 50/Speed seconds
 SPEED          = 1000.0
+
 RESET_RATE       = 50
 
-
+# Messages to the monitor to change their displays this could probably be simplified. 
+# The reason I did not use single digit numbers was because it'd cause the DeviceLogic to send multiple copies of 
+# the intended message causing a 1 for example to be interpreted as 111 in bits.
+# A work around could be specfiying a message size when sending and receieving 
 COLOR0 = "colormeasurment0".encode()
 COLOR1 = "colormeasurment1".encode()
 POS0 = "positionmeasurement0".encode()
 POS1 = "positionmeasurement1".encode()
 RESET = "rest".encode()
 
+# Logic I was using to reset the LEDS
 def colorWipe(strip, color, wait_ms=50):
     """Wipe color across display a pixel at a time."""
     for i in range(strip.numPixels()):
         strip.setPixelColor(i, color)
         strip.show()
-        time.sleep(wait_ms/10000.0)
+
+    time.sleep(wait_ms/10000.0)
 
 
-
+# I recommend rewriting this since right now its indexed to the test setup and you'd need to reindex it for the new one
+# In addition, this code was implemented for a single pulse, you could include a loop somewhere else to use this kind of function but
+# rewriting it instead would probably be easier
 def quantumlights(strip1, strip2 , color1_1 , color1_2 , color2_1 , color2_2,s1p , s2p, wait_ms = 50):
     # Clears the first pulse of lights
     if s1p != LED_COUNT - 1:
@@ -87,7 +100,11 @@ def quantumlights(strip1, strip2 , color1_1 , color1_2 , color2_1 , color2_2,s1p
 # 
 # 
 
-touch_array = np.zeros(24)
+
+# Depending on the number of touch capacitor and sensors you are using you'd need to modify this code which shouldnt be hard.
+# All that is needed it to take into account which capacitve touch sensor address is relative to which side of a strip
+
+# touch_array = np.zeros(24)
 s1touch = np.zeros(12)
 if mpr121:    
     def s1touch(s1):
@@ -146,7 +163,7 @@ if mpr1212:
         # print (pos , (pos + LED_SEPERATION // 8)%24)
         return pos1measurement , color1measurement
 
-
+#defining colors
 purple = Color(128,0,128)
 red = Color(255,0,0)
 blue = Color(0,0,255)
@@ -180,6 +197,7 @@ def server():
     Monitor1, addr = s.accept()
     print("Connection from: " + str(addr))
     print("Connection from: " + str(addr2))
+    #Setting the socket so that it wouldn't wait for a response
     Monitor1.setblocking(0)
     Monitor2.setblocking(0)
     prev = -1
